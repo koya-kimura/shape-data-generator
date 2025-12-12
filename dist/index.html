@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>N角形データジェネレーター | Polygon Data Generator</title>
+    <meta name="description" content="機械学習用のN角形画像データセットを生成">
+  <script type="module" crossorigin src="./assets/index-Ct44sqt2.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-D78xANE-.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>N角形データジェネレーター</h1>
+            <p class="subtitle">機械学習用の図形データセットを生成</p>
+        </header>
+
+        <div class="main-content">
+            <!-- プレビューエリア -->
+            <div class="preview-section">
+                <div class="canvas-area">
+                    <div class="canvas-wrapper">
+                        <canvas id="shape-canvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- プレビュー調整コントロール -->
+                <div class="preview-controls">
+                    <h2 class="section-title">プレビュー調整</h2>
+
+                    <div class="controls-grid">
+                        <div class="form-group">
+                            <div class="input-with-value">
+                                <label for="vertices">頂点数（N）</label>
+                                <span class="value-display" id="vertices-value">6</span>
+                            </div>
+                            <input type="range" id="vertices" min="3" max="12" value="6" step="1">
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-with-value">
+                                <label for="angle">回転角度</label>
+                                <span class="value-display" id="angle-value">0°</span>
+                            </div>
+                            <input type="range" id="angle" min="0" max="360" value="0" step="1">
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-with-value">
+                                <label for="radius">半径</label>
+                                <span class="value-display" id="radius-value">50%</span>
+                            </div>
+                            <input type="range" id="radius" min="0" max="100" value="50" step="1">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="preview-color">プレビュー色</label>
+                            <select id="preview-color" class="color-select">
+                                <option value="#ffffff">白</option>
+                                <option value="#ff0000">赤</option>
+                                <option value="#00ff00">緑</option>
+                                <option value="#0000ff">青</option>
+                                <option value="#ffff00">黄</option>
+                                <option value="#ff00ff">マゼンタ</option>
+                                <option value="#00ffff">シアン</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button id="random-btn" class="btn-secondary">ランダム生成</button>
+                </div>
+            </div>
+
+            <!-- データ生成サイドバー -->
+            <div class="data-gen-sidebar">
+                <h2 class="section-title">データ生成設定</h2>
+
+                <div class="section">
+                    <h3 class="subsection-title">画像サイズ</h3>
+                    <div class="form-group">
+                        <label for="image-size">サイズ（px）</label>
+                        <input type="number" id="image-size" min="16" max="512" value="28" step="1">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="subsection-title">頂点数の範囲</h3>
+
+                    <div class="form-group">
+                        <label for="batch-min-vertices">最小頂点数</label>
+                        <input type="number" id="batch-min-vertices" min="3" max="12" value="3" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="batch-max-vertices">最大頂点数</label>
+                        <input type="number" id="batch-max-vertices" min="3" max="12" value="6" step="1">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="subsection-title">各N角形の生成数</h3>
+                    <div class="form-group">
+                        <input type="number" id="batch-count-per-shape" min="1" max="1000" value="100" step="10">
+                    </div>
+                    <div class="total-count">合計: <span id="total-count">400</span>枚</div>
+                </div>
+
+                <div class="section">
+                    <h3 class="subsection-title">半径の範囲</h3>
+
+                    <div class="form-group">
+                        <div class="input-with-value">
+                            <label for="batch-min-radius">最小半径</label>
+                            <span class="value-display" id="batch-min-radius-value">30%</span>
+                        </div>
+                        <input type="range" id="batch-min-radius" min="0" max="100" value="30" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="input-with-value">
+                            <label for="batch-max-radius">最大半径</label>
+                            <span class="value-display" id="batch-max-radius-value">45%</span>
+                        </div>
+                        <input type="range" id="batch-max-radius" min="0" max="100" value="45" step="1">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3 class="subsection-title">生成する色</h3>
+                    <div class="color-checkboxes">
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="color-checkbox" value="#ffffff" checked>
+                            <span class="color-preview"
+                                style="background-color: #ffffff; border: 1px solid #666;"></span>
+                            白
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="color-checkbox" value="#ff0000" checked>
+                            <span class="color-preview" style="background-color: #ff0000;"></span>
+                            赤
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="color-checkbox" value="#00ff00" checked>
+                            <span class="color-preview" style="background-color: #00ff00;"></span>
+                            緑
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="color-checkbox" value="#0000ff" checked>
+                            <span class="color-preview" style="background-color: #0000ff;"></span>
+                            青
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="color-checkbox" value="#ffff00" checked>
+                            <span class="color-preview" style="background-color: #ffff00;"></span>
+                            黄
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="color-checkbox" value="#ff00ff" checked>
+                            <span class="color-preview" style="background-color: #ff00ff;"></span>
+                            マゼンタ
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="color-checkbox" value="#00ffff" checked>
+                            <span class="color-preview" style="background-color: #00ffff;"></span>
+                            シアン
+                        </label>
+                    </div>
+                </div>
+
+                <button id="generate-data-btn" class="btn-primary">データ生成してダウンロード</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2025 きむらこうや制作</p>
+    </footer>
+
+</body>
+
+</html>

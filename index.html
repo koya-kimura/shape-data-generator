@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📐 図形データセット生成 | Shape Dataset Generator</title>
+    <meta name="description" content="機械学習用の図形画像データセットを生成するWebアプリケーション">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>📐 図形データセット生成</h1>
+            <p class="subtitle">機械学習用の正多角形画像とメタデータ（CSV）を生成</p>
+        </header>
+
+        <div class="main-content">
+            <!-- 設定フォーム -->
+            <div class="settings-panel">
+                <!-- 基本設定 -->
+                <section class="section">
+                    <h2 class="section-title">【基本設定】</h2>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="sample-count">サンプル数</label>
+                            <div class="input-suffix">
+                                <input type="number" id="sample-count" min="1" max="100000" value="1000" step="100">
+                                <span class="suffix">枚</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="image-size">画像サイズ</label>
+                            <div class="input-suffix">
+                                <input type="number" id="image-size" min="16" max="512" value="64" step="8">
+                                <span class="suffix">px</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="random-seed">乱数シード</label>
+                            <input type="text" id="random-seed" value="42" placeholder="空欄でランダム">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 属性の範囲 -->
+                <section class="section">
+                    <h2 class="section-title">【属性の範囲】</h2>
+
+                    <div class="form-row range-row">
+                        <div class="form-group range-group">
+                            <label>サイズ</label>
+                            <div class="range-inputs">
+                                <input type="number" id="size-min" min="0.1" max="1" value="0.3" step="0.1">
+                                <span class="range-separator">〜</span>
+                                <input type="number" id="size-max" min="0.1" max="1" value="1.0" step="0.1">
+                            </div>
+                        </div>
+
+                        <div class="form-group range-group">
+                            <label>角度</label>
+                            <div class="range-inputs">
+                                <input type="number" id="angle-min" min="0" max="360" value="0" step="1">
+                                <span class="range-separator">〜</span>
+                                <input type="number" id="angle-max" min="0" max="360" value="360" step="1">
+                                <span class="suffix">度</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group range-group">
+                            <label>頂点数</label>
+                            <div class="range-inputs">
+                                <input type="number" id="vertices-min" min="3" max="20" value="3" step="1">
+                                <span class="range-separator">〜</span>
+                                <input type="number" id="vertices-max" min="3" max="20" value="8" step="1">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 色の範囲 -->
+                <section class="section">
+                    <h2 class="section-title">【色の範囲】</h2>
+
+                    <div class="form-row range-row">
+                        <div class="form-group range-group">
+                            <label>赤 (R)</label>
+                            <div class="range-inputs">
+                                <input type="number" id="color-r-min" min="0" max="1" value="0.0" step="0.1">
+                                <span class="range-separator">〜</span>
+                                <input type="number" id="color-r-max" min="0" max="1" value="1.0" step="0.1">
+                            </div>
+                        </div>
+
+                        <div class="form-group range-group">
+                            <label>緑 (G)</label>
+                            <div class="range-inputs">
+                                <input type="number" id="color-g-min" min="0" max="1" value="0.0" step="0.1">
+                                <span class="range-separator">〜</span>
+                                <input type="number" id="color-g-max" min="0" max="1" value="1.0" step="0.1">
+                            </div>
+                        </div>
+
+                        <div class="form-group range-group">
+                            <label>青 (B)</label>
+                            <div class="range-inputs">
+                                <input type="number" id="color-b-min" min="0" max="1" value="0.0" step="0.1">
+                                <span class="range-separator">〜</span>
+                                <input type="number" id="color-b-max" min="0" max="1" value="1.0" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ボタン -->
+                <div class="button-row">
+                    <button id="preview-btn" class="btn-secondary">
+                        <span class="btn-icon">🎲</span>
+                        プレビュー
+                    </button>
+                    <button id="generate-btn" class="btn-primary">
+                        <span class="btn-icon">📥</span>
+                        生成 &amp; ダウンロード
+                    </button>
+                </div>
+
+                <!-- 進捗表示 -->
+                <div id="progress-container" class="progress-container" style="display: none;">
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <p id="progress-text" class="progress-text">生成中...</p>
+                </div>
+            </div>
+
+            <!-- プレビューエリア -->
+            <div class="preview-panel">
+                <h2 class="section-title">【プレビュー】</h2>
+                <div id="preview-grid" class="preview-grid">
+                    <!-- プレビュー画像がここに入る -->
+                    <p class="preview-placeholder">「プレビュー」ボタンを押すと、現在の設定でサンプル画像を表示します</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 非表示のキャンバス（画像生成用） -->
+        <canvas id="shape-canvas" style="display: none;"></canvas>
+    </div>
+
+    <footer>
+        <p>© 2025 きむらこうや制作 | 条件付き拡散モデル学習用データセット生成ツール</p>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
