@@ -104,9 +104,40 @@ export class ShapeGenerator {
     }
 
     /**
-     * RGB値からCSS色文字列を生成
+     * HSLからRGBに変換
+     * @param h 色相 (0-360)
+     * @param s 彩度 (0-1)
+     * @param l 明度 (0-1)
+     * @returns [r, g, b] 各値 0-1
      */
-    rgbToColor(r: number, g: number, b: number): string {
+    hslToRgb(h: number, s: number, l: number): [number, number, number] {
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+
+        let r = 0, g = 0, b = 0;
+        if (h >= 0 && h < 60) {
+            [r, g, b] = [c, x, 0];
+        } else if (h >= 60 && h < 120) {
+            [r, g, b] = [x, c, 0];
+        } else if (h >= 120 && h < 180) {
+            [r, g, b] = [0, c, x];
+        } else if (h >= 180 && h < 240) {
+            [r, g, b] = [0, x, c];
+        } else if (h >= 240 && h < 300) {
+            [r, g, b] = [x, 0, c];
+        } else {
+            [r, g, b] = [c, 0, x];
+        }
+
+        return [r + m, g + m, b + m];
+    }
+
+    /**
+     * HSL値からCSS色文字列を生成（明度は0.5固定）
+     */
+    hslToColor(h: number, s: number): string {
+        const [r, g, b] = this.hslToRgb(h, s, 0.5);
         const ri = Math.round(r * 255);
         const gi = Math.round(g * 255);
         const bi = Math.round(b * 255);
@@ -117,7 +148,7 @@ export class ShapeGenerator {
      * 正多角形を描画（塗りつぶし）
      */
     drawShape(params: ShapeParams): void {
-        const { size, angle, vertices, centerX, centerY, colorR, colorG, colorB } = params;
+        const { size, angle, vertices, centerX, centerY, hue, saturation } = params;
 
         // 正規化された座標から実際のピクセル座標に変換
         const actualCenterX = centerX * this.config.imageSize;
@@ -126,7 +157,7 @@ export class ShapeGenerator {
         const radius = size * maxRadius;
 
         const points = this.calculatePolygonPoints(actualCenterX, actualCenterY, radius, vertices, angle);
-        const fillColor = this.rgbToColor(colorR, colorG, colorB);
+        const fillColor = this.hslToColor(hue, saturation);
 
         this.ctx.beginPath();
         this.ctx.moveTo(points[0].x, points[0].y);
@@ -190,12 +221,10 @@ export function generateRandomParams(
     angleMax: number,
     verticesMin: number,
     verticesMax: number,
-    colorRMin: number,
-    colorRMax: number,
-    colorGMin: number,
-    colorGMax: number,
-    colorBMin: number,
-    colorBMax: number
+    hueMin: number,
+    hueMax: number,
+    saturationMin: number,
+    saturationMax: number
 ): ShapeParams {
     const random = rng || {
         nextFloat: (min: number, max: number) => min + Math.random() * (max - min),
@@ -206,26 +235,25 @@ export function generateRandomParams(
     const [sMin, sMax] = sizeMin <= sizeMax ? [sizeMin, sizeMax] : [sizeMax, sizeMin];
     const [aMin, aMax] = angleMin <= angleMax ? [angleMin, angleMax] : [angleMax, angleMin];
     const [vMin, vMax] = verticesMin <= verticesMax ? [verticesMin, verticesMax] : [verticesMax, verticesMin];
-    const [rMin, rMax] = colorRMin <= colorRMax ? [colorRMin, colorRMax] : [colorRMax, colorRMin];
-    const [gMin, gMax] = colorGMin <= colorGMax ? [colorGMin, colorGMax] : [colorGMax, colorGMin];
-    const [bMin, bMax] = colorBMin <= colorBMax ? [colorBMin, colorBMax] : [colorBMax, colorBMin];
+    const [hMin, hMax] = hueMin <= hueMax ? [hueMin, hueMax] : [hueMax, hueMin];
+    const [satMin, satMax] = saturationMin <= saturationMax ? [saturationMin, saturationMax] : [saturationMax, saturationMin];
 
     // サイズを決定
     const size = random.nextFloat(sMin, sMax);
-    
+
     // 最大半径（ピクセル）
     const maxRadius = (imageSize / 2) - margin;
     const radius = size * maxRadius;
-    
+
     // 図形が画像内に収まるように中心位置の範囲を計算
     // 中心から半径分の余裕を持たせる + マージン
     const minCenter = (radius + margin) / imageSize;
     const maxCenter = 1 - minCenter;
-    
+
     // 中心位置をランダムに決定（正規化座標）
     let centerX: number;
     let centerY: number;
-    
+
     if (minCenter >= maxCenter) {
         // 図形が大きすぎる場合は中央に配置
         centerX = 0.5;
@@ -241,9 +269,8 @@ export function generateRandomParams(
         vertices: random.nextInt(Math.max(3, vMin), vMax),
         centerX,
         centerY,
-        colorR: random.nextFloat(rMin, rMax),
-        colorG: random.nextFloat(gMin, gMax),
-        colorB: random.nextFloat(bMin, bMax),
+        hue: random.nextFloat(hMin, hMax),
+        saturation: random.nextFloat(satMin, satMax),
     };
 }
 

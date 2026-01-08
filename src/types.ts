@@ -12,12 +12,10 @@ export interface ShapeParams {
     centerX: number;
     /** 中心Y座標（正規化: 0.0〜1.0） */
     centerY: number;
-    /** 赤成分（0.0〜1.0） */
-    colorR: number;
-    /** 緑成分（0.0〜1.0） */
-    colorG: number;
-    /** 青成分（0.0〜1.0） */
-    colorB: number;
+    /** 色相（0〜360度） */
+    hue: number;
+    /** 彩度（0.0〜1.0） */
+    saturation: number;
 }
 
 /**
@@ -54,18 +52,14 @@ export interface GenerationConfig {
     verticesMin: number;
     /** 頂点数の最大値 */
     verticesMax: number;
-    /** 赤成分の最小値 */
-    colorRMin: number;
-    /** 赤成分の最大値 */
-    colorRMax: number;
-    /** 緑成分の最小値 */
-    colorGMin: number;
-    /** 緑成分の最大値 */
-    colorGMax: number;
-    /** 青成分の最小値 */
-    colorBMin: number;
-    /** 青成分の最大値 */
-    colorBMax: number;
+    /** 色相の最小値 */
+    hueMin: number;
+    /** 色相の最大値 */
+    hueMax: number;
+    /** 彩度の最小値 */
+    saturationMin: number;
+    /** 彩度の最大値 */
+    saturationMax: number;
 }
 
 /**
@@ -84,10 +78,8 @@ export interface MetadataRow {
     center_x: number;
     /** 中心Y座標（正規化: 0.0〜1.0） */
     center_y: number;
-    /** 赤成分（0.0〜1.0） */
-    color_r: number;
-    /** 緑成分（0.0〜1.0） */
-    color_g: number;
-    /** 青成分（0.0〜1.0） */
-    color_b: number;
+    /** 色相（0〜360度） */
+    hue: number;
+    /** 彩度（0.0〜1.0） */
+    saturation: number;
 }

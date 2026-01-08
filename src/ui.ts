@@ -31,12 +31,10 @@ export class UIController {
         const angleMaxInput = document.getElementById('angle-max') as HTMLInputElement;
         const verticesMinInput = document.getElementById('vertices-min') as HTMLInputElement;
         const verticesMaxInput = document.getElementById('vertices-max') as HTMLInputElement;
-        const colorRMinInput = document.getElementById('color-r-min') as HTMLInputElement;
-        const colorRMaxInput = document.getElementById('color-r-max') as HTMLInputElement;
-        const colorGMinInput = document.getElementById('color-g-min') as HTMLInputElement;
-        const colorGMaxInput = document.getElementById('color-g-max') as HTMLInputElement;
-        const colorBMinInput = document.getElementById('color-b-min') as HTMLInputElement;
-        const colorBMaxInput = document.getElementById('color-b-max') as HTMLInputElement;
+        const hueMinInput = document.getElementById('hue-min') as HTMLInputElement;
+        const hueMaxInput = document.getElementById('hue-max') as HTMLInputElement;
+        const saturationMinInput = document.getElementById('saturation-min') as HTMLInputElement;
+        const saturationMaxInput = document.getElementById('saturation-max') as HTMLInputElement;
 
         const seedValue = randomSeedInput?.value.trim();
         const seed = seedValue ? parseInt(seedValue) : null;
@@ -51,12 +49,10 @@ export class UIController {
             angleMax: parseFloat(angleMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.angleMax)),
             verticesMin: parseInt(verticesMinInput?.value || String(DEFAULT_GENERATION_CONFIG.verticesMin)),
             verticesMax: parseInt(verticesMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.verticesMax)),
-            colorRMin: parseFloat(colorRMinInput?.value || String(DEFAULT_GENERATION_CONFIG.colorRMin)),
-            colorRMax: parseFloat(colorRMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.colorRMax)),
-            colorGMin: parseFloat(colorGMinInput?.value || String(DEFAULT_GENERATION_CONFIG.colorGMin)),
-            colorGMax: parseFloat(colorGMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.colorGMax)),
-            colorBMin: parseFloat(colorBMinInput?.value || String(DEFAULT_GENERATION_CONFIG.colorBMin)),
-            colorBMax: parseFloat(colorBMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.colorBMax)),
+            hueMin: parseFloat(hueMinInput?.value || String(DEFAULT_GENERATION_CONFIG.hueMin)),
+            hueMax: parseFloat(hueMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.hueMax)),
+            saturationMin: parseFloat(saturationMinInput?.value || String(DEFAULT_GENERATION_CONFIG.saturationMin)),
+            saturationMax: parseFloat(saturationMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.saturationMax)),
         };
     }
 
@@ -121,12 +117,10 @@ export class UIController {
                 config.angleMax,
                 config.verticesMin,
                 config.verticesMax,
-                config.colorRMin,
-                config.colorRMax,
-                config.colorGMin,
-                config.colorGMax,
-                config.colorBMin,
-                config.colorBMax
+                config.hueMin,
+                config.hueMax,
+                config.saturationMin,
+                config.saturationMax
             );
 
             this.generator.render(params);
@@ -159,7 +153,7 @@ export class UIController {
             <span>angle: ${params.angle.toFixed(1)}°</span>
             <span>vertices: ${params.vertices}</span>
             <span>center: (${params.centerX.toFixed(2)}, ${params.centerY.toFixed(2)})</span>
-            <span>rgb: ${params.colorR.toFixed(2)}, ${params.colorG.toFixed(2)}, ${params.colorB.toFixed(2)}</span>
+            <span>hue: ${params.hue.toFixed(1)}°, sat: ${params.saturation.toFixed(2)}</span>
         `;
 
         item.appendChild(imageWrapper);
@@ -215,8 +209,8 @@ export class UIController {
             this.generator.updateConfig({ imageSize: config.imageSize });
 
             // 乱数生成器
-            const rng = config.seed !== null 
-                ? new SeededRandom(config.seed) 
+            const rng = config.seed !== null
+                ? new SeededRandom(config.seed)
                 : new SeededRandom(Math.floor(Math.random() * 2147483647));
 
             const zip = new JSZip();
@@ -238,12 +232,10 @@ export class UIController {
                     config.angleMax,
                     config.verticesMin,
                     config.verticesMax,
-                    config.colorRMin,
-                    config.colorRMax,
-                    config.colorGMin,
-                    config.colorGMax,
-                    config.colorBMin,
-                    config.colorBMax
+                    config.hueMin,
+                    config.hueMax,
+                    config.saturationMin,
+                    config.saturationMax
                 );
 
                 // 画像生成
@@ -260,9 +252,8 @@ export class UIController {
                     vertices: params.vertices,
                     center_x: params.centerX,
                     center_y: params.centerY,
-                    color_r: params.colorR,
-                    color_g: params.colorG,
-                    color_b: params.colorB,
+                    hue: params.hue,
+                    saturation: params.saturation,
                 });
 
                 // 進捗更新（バッチごと）
@@ -298,9 +289,9 @@ export class UIController {
      * CSV文字列を生成
      */
     private createCSV(data: MetadataRow[]): string {
-        const header = 'filename,size,angle,vertices,center_x,center_y,color_r,color_g,color_b\n';
-        const rows = data.map(d => 
-            `${d.filename},${d.size.toFixed(4)},${d.angle.toFixed(2)},${d.vertices},${d.center_x.toFixed(4)},${d.center_y.toFixed(4)},${d.color_r.toFixed(4)},${d.color_g.toFixed(4)},${d.color_b.toFixed(4)}`
+        const header = 'filename,size,angle,vertices,center_x,center_y,hue,saturation\n';
+        const rows = data.map(d =>
+            `${d.filename},${d.size.toFixed(4)},${d.angle.toFixed(2)},${d.vertices},${d.center_x.toFixed(4)},${d.center_y.toFixed(4)},${d.hue.toFixed(2)},${d.saturation.toFixed(4)}`
         );
         return header + rows.join('\n');
     }

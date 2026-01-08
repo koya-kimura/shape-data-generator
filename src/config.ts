@@ -22,12 +22,10 @@ export const DEFAULT_GENERATION_CONFIG: GenerationConfig = {
     angleMax: 360,
     verticesMin: 3,
     verticesMax: 8,
-    colorRMin: 0.0,
-    colorRMax: 1.0,
-    colorGMin: 0.0,
-    colorGMax: 1.0,
-    colorBMin: 0.0,
-    colorBMax: 1.0,
+    hueMin: 0,
+    hueMax: 360,
+    saturationMin: 0.5,
+    saturationMax: 1.0,
 };
 
 /**
