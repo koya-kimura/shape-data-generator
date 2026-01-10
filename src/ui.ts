@@ -1,5 +1,5 @@
-import { ShapeGenerator, SeededRandom, generateRandomParams, formatFilename } from './shapeGenerator';
-import { CanvasConfig, GenerationConfig, MetadataRow, ShapeParams } from './types';
+import { ShapeGenerator, SeededRandom, generateRandomParams, formatFilename, getBackgroundHSL } from './shapeGenerator';
+import { CanvasConfig, GenerationConfig, MetadataRow, ShapeParams, BackgroundType, PositionType } from './types';
 import { DEFAULT_CANVAS_CONFIG, DEFAULT_GENERATION_CONFIG, PREVIEW_COUNT } from './config';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -25,6 +25,7 @@ export class UIController {
         const sampleCountInput = document.getElementById('sample-count') as HTMLInputElement;
         const imageSizeInput = document.getElementById('image-size') as HTMLInputElement;
         const randomSeedInput = document.getElementById('random-seed') as HTMLInputElement;
+        const shapeTypeSelect = document.getElementById('shape-type') as HTMLSelectElement;
         const sizeMinInput = document.getElementById('size-min') as HTMLInputElement;
         const sizeMaxInput = document.getElementById('size-max') as HTMLInputElement;
         const angleMinInput = document.getElementById('angle-min') as HTMLInputElement;
@@ -35,14 +36,24 @@ export class UIController {
         const hueMaxInput = document.getElementById('hue-max') as HTMLInputElement;
         const saturationMinInput = document.getElementById('saturation-min') as HTMLInputElement;
         const saturationMaxInput = document.getElementById('saturation-max') as HTMLInputElement;
+        const lightnessMinInput = document.getElementById('lightness-min') as HTMLInputElement;
+        const lightnessMaxInput = document.getElementById('lightness-max') as HTMLInputElement;
 
         const seedValue = randomSeedInput?.value.trim();
         const seed = seedValue ? parseInt(seedValue) : null;
+        const shapeTypeValue = shapeTypeSelect?.value || 'both';
+        const backgroundTypeSelect = document.getElementById('background-type') as HTMLSelectElement;
+        const backgroundTypeValue = backgroundTypeSelect?.value || 'black';
+        const positionTypeSelect = document.getElementById('position-type') as HTMLSelectElement;
+        const positionTypeValue = positionTypeSelect?.value || 'random';
 
         return {
             sampleCount: parseInt(sampleCountInput?.value || String(DEFAULT_GENERATION_CONFIG.sampleCount)),
             imageSize: parseInt(imageSizeInput?.value || String(DEFAULT_GENERATION_CONFIG.imageSize)),
             seed: isNaN(seed as number) ? null : seed,
+            shapeType: shapeTypeValue as 'polygon' | 'circle' | 'both',
+            backgroundType: backgroundTypeValue as BackgroundType,
+            positionType: positionTypeValue as PositionType,
             sizeMin: parseFloat(sizeMinInput?.value || String(DEFAULT_GENERATION_CONFIG.sizeMin)),
             sizeMax: parseFloat(sizeMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.sizeMax)),
             angleMin: parseFloat(angleMinInput?.value || String(DEFAULT_GENERATION_CONFIG.angleMin)),
@@ -53,6 +64,8 @@ export class UIController {
             hueMax: parseFloat(hueMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.hueMax)),
             saturationMin: parseFloat(saturationMinInput?.value || String(DEFAULT_GENERATION_CONFIG.saturationMin)),
             saturationMax: parseFloat(saturationMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.saturationMax)),
+            lightnessMin: parseFloat(lightnessMinInput?.value || String(DEFAULT_GENERATION_CONFIG.lightnessMin)),
+            lightnessMax: parseFloat(lightnessMaxInput?.value || String(DEFAULT_GENERATION_CONFIG.lightnessMax)),
         };
     }
 
@@ -111,6 +124,8 @@ export class UIController {
                 rng,
                 config.imageSize,
                 this.canvasConfig.margin,
+                config.shapeType,
+                config.positionType,
                 config.sizeMin,
                 config.sizeMax,
                 config.angleMin,
@@ -120,13 +135,18 @@ export class UIController {
                 config.hueMin,
                 config.hueMax,
                 config.saturationMin,
-                config.saturationMax
+                config.saturationMax,
+                config.lightnessMin,
+                config.lightnessMax
             );
 
-            this.generator.render(params);
+            // 背景色を取得
+            const [bgHue, bgSaturation, bgLightness] = getBackgroundHSL(config.backgroundType, rng);
+
+            this.generator.renderWithBackground(params, bgHue, bgSaturation, bgLightness);
             const dataUrl = this.generator.toDataURL();
 
-            const item = this.createPreviewItem(dataUrl, params);
+            const item = this.createPreviewItem(dataUrl, params, bgLightness);
             previewGrid.appendChild(item);
         }
     }
@@ -134,7 +154,7 @@ export class UIController {
     /**
      * プレビューアイテムを作成
      */
-    private createPreviewItem(imageUrl: string, params: ShapeParams): HTMLDivElement {
+    private createPreviewItem(imageUrl: string, params: ShapeParams, bgLightness: number): HTMLDivElement {
         const item = document.createElement('div');
         item.className = 'preview-item';
 
@@ -148,12 +168,14 @@ export class UIController {
 
         const info = document.createElement('div');
         info.className = 'preview-info';
+        const shapeLabel = params.shapeType === 'circle' ? '円' : `${params.vertices}角形`;
+        const bgLabel = bgLightness === 0 ? '黒' : bgLightness === 1 ? '白' : 'グレー';
         info.innerHTML = `
+            <span>type: ${shapeLabel}, bg: ${bgLabel}</span>
             <span>size: ${params.size.toFixed(2)}</span>
             <span>angle: ${params.angle.toFixed(1)}°</span>
-            <span>vertices: ${params.vertices}</span>
             <span>center: (${params.centerX.toFixed(2)}, ${params.centerY.toFixed(2)})</span>
-            <span>hue: ${params.hue.toFixed(1)}°, sat: ${params.saturation.toFixed(2)}</span>
+            <span>hue: ${params.hue.toFixed(1)}°, sat: ${params.saturation.toFixed(2)}, light: ${params.lightness.toFixed(2)}</span>
         `;
 
         item.appendChild(imageWrapper);
@@ -226,6 +248,8 @@ export class UIController {
                     rng,
                     config.imageSize,
                     this.canvasConfig.margin,
+                    config.shapeType,
+                    config.positionType,
                     config.sizeMin,
                     config.sizeMax,
                     config.angleMin,
@@ -235,11 +259,16 @@ export class UIController {
                     config.hueMin,
                     config.hueMax,
                     config.saturationMin,
-                    config.saturationMax
+                    config.saturationMax,
+                    config.lightnessMin,
+                    config.lightnessMax
                 );
 
+                // 背景色を取得
+                const [bgHue, bgSaturation, bgLightness] = getBackgroundHSL(config.backgroundType, rng);
+
                 // 画像生成
-                this.generator.render(params);
+                this.generator.renderWithBackground(params, bgHue, bgSaturation, bgLightness);
                 const blob = await this.generator.toBlob();
                 const filename = formatFilename(i, totalCount);
                 imagesFolder?.file(filename, blob);
@@ -247,6 +276,7 @@ export class UIController {
                 // メタデータ追加
                 metadata.push({
                     filename,
+                    shape_type: params.shapeType,
                     size: params.size,
                     angle: params.angle,
                     vertices: params.vertices,
@@ -254,6 +284,10 @@ export class UIController {
                     center_y: params.centerY,
                     hue: params.hue,
                     saturation: params.saturation,
+                    lightness: params.lightness,
+                    bg_hue: bgHue,
+                    bg_saturation: bgSaturation,
+                    bg_lightness: bgLightness,
                 });
 
                 // 進捗更新（バッチごと）
@@ -289,9 +323,9 @@ export class UIController {
      * CSV文字列を生成
      */
     private createCSV(data: MetadataRow[]): string {
-        const header = 'filename,size,angle,vertices,center_x,center_y,hue,saturation\n';
+        const header = 'filename,shape_type,size,angle,vertices,center_x,center_y,hue,saturation,lightness,bg_hue,bg_saturation,bg_lightness\n';
         const rows = data.map(d =>
-            `${d.filename},${d.size.toFixed(4)},${d.angle.toFixed(2)},${d.vertices},${d.center_x.toFixed(4)},${d.center_y.toFixed(4)},${d.hue.toFixed(2)},${d.saturation.toFixed(4)}`
+            `${d.filename},${d.shape_type},${d.size.toFixed(4)},${d.angle.toFixed(2)},${d.vertices},${d.center_x.toFixed(4)},${d.center_y.toFixed(4)},${d.hue.toFixed(2)},${d.saturation.toFixed(4)},${d.lightness.toFixed(4)},${d.bg_hue.toFixed(2)},${d.bg_saturation.toFixed(4)},${d.bg_lightness.toFixed(4)}`
         );
         return header + rows.join('\n');
     }

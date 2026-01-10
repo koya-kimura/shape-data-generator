@@ -16,6 +16,9 @@ export const DEFAULT_GENERATION_CONFIG: GenerationConfig = {
     sampleCount: 1000,
     imageSize: 64,
     seed: 42,
+    shapeType: 'both',
+    backgroundType: 'black',
+    positionType: 'random',
     sizeMin: 0.3,
     sizeMax: 1.0,
     angleMin: 0,
@@ -26,6 +29,8 @@ export const DEFAULT_GENERATION_CONFIG: GenerationConfig = {
     hueMax: 360,
     saturationMin: 0.5,
     saturationMax: 1.0,
+    lightnessMin: 0.3,
+    lightnessMax: 0.7,
 };
 
 /**

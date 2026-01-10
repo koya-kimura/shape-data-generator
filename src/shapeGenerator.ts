@@ -1,4 +1,4 @@
-import { ShapeParams, CanvasConfig } from './types';
+import { ShapeParams, ShapeType, BackgroundType, PositionType, CanvasConfig } from './types';
 
 /**
  * シード付き乱数生成器（Mulberry32）
@@ -71,10 +71,10 @@ export class ShapeGenerator {
     }
 
     /**
-     * キャンバスをクリア（黒背景）
+     * キャンバスをクリア（指定色で塗りつぶし）
      */
-    clear(): void {
-        this.ctx.fillStyle = this.config.backgroundColor;
+    clear(color: string): void {
+        this.ctx.fillStyle = color;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
@@ -134,10 +134,10 @@ export class ShapeGenerator {
     }
 
     /**
-     * HSL値からCSS色文字列を生成（明度は0.5固定）
+     * HSL値からCSS色文字列を生成
      */
-    hslToColor(h: number, s: number): string {
-        const [r, g, b] = this.hslToRgb(h, s, 0.5);
+    hslToColor(h: number, s: number, l: number): string {
+        const [r, g, b] = this.hslToRgb(h, s, l);
         const ri = Math.round(r * 255);
         const gi = Math.round(g * 255);
         const bi = Math.round(b * 255);
@@ -145,10 +145,10 @@ export class ShapeGenerator {
     }
 
     /**
-     * 正多角形を描画（塗りつぶし）
+     * 図形を描画（塗りつぶし）
      */
     drawShape(params: ShapeParams): void {
-        const { size, angle, vertices, centerX, centerY, hue, saturation } = params;
+        const { shapeType, size, angle, vertices, centerX, centerY, hue, saturation, lightness } = params;
 
         // 正規化された座標から実際のピクセル座標に変換
         const actualCenterX = centerX * this.config.imageSize;
@@ -156,14 +156,22 @@ export class ShapeGenerator {
         const maxRadius = (this.config.imageSize / 2) - this.config.margin;
         const radius = size * maxRadius;
 
-        const points = this.calculatePolygonPoints(actualCenterX, actualCenterY, radius, vertices, angle);
-        const fillColor = this.hslToColor(hue, saturation);
+        const fillColor = this.hslToColor(hue, saturation, lightness);
 
         this.ctx.beginPath();
-        this.ctx.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length; i++) {
-            this.ctx.lineTo(points[i].x, points[i].y);
+
+        if (shapeType === 'circle') {
+            // 円を描画
+            this.ctx.arc(actualCenterX, actualCenterY, radius, 0, Math.PI * 2);
+        } else {
+            // 多角形を描画
+            const points = this.calculatePolygonPoints(actualCenterX, actualCenterY, radius, vertices, angle);
+            this.ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                this.ctx.lineTo(points[i].x, points[i].y);
+            }
         }
+
         this.ctx.closePath();
         this.ctx.fillStyle = fillColor;
         this.ctx.fill();
@@ -172,8 +180,9 @@ export class ShapeGenerator {
     /**
      * キャンバス全体を描画（クリア + 図形描画）
      */
-    render(params: ShapeParams): void {
-        this.clear();
+    renderWithBackground(params: ShapeParams, bgHue: number, bgSaturation: number, bgLightness: number): void {
+        const bgColor = this.hslToColor(bgHue, bgSaturation, bgLightness);
+        this.clear(bgColor);
         this.drawShape(params);
     }
 
@@ -215,6 +224,8 @@ export function generateRandomParams(
     rng: SeededRandom | null,
     imageSize: number,
     margin: number,
+    shapeTypeSetting: 'polygon' | 'circle' | 'both',
+    positionType: PositionType,
     sizeMin: number,
     sizeMax: number,
     angleMin: number,
@@ -224,12 +235,23 @@ export function generateRandomParams(
     hueMin: number,
     hueMax: number,
     saturationMin: number,
-    saturationMax: number
+    saturationMax: number,
+    lightnessMin: number,
+    lightnessMax: number
 ): ShapeParams {
     const random = rng || {
         nextFloat: (min: number, max: number) => min + Math.random() * (max - min),
         nextInt: (min: number, max: number) => Math.floor(min + Math.random() * (max - min + 1)),
+        next: () => Math.random(),
     };
+
+    // 図形タイプを決定
+    let shapeType: ShapeType;
+    if (shapeTypeSetting === 'both') {
+        shapeType = random.next() < 0.5 ? 'polygon' : 'circle';
+    } else {
+        shapeType = shapeTypeSetting;
+    }
 
     // 範囲の最小値 > 最大値の場合は入れ替える
     const [sMin, sMax] = sizeMin <= sizeMax ? [sizeMin, sizeMax] : [sizeMax, sizeMin];
@@ -237,40 +259,49 @@ export function generateRandomParams(
     const [vMin, vMax] = verticesMin <= verticesMax ? [verticesMin, verticesMax] : [verticesMax, verticesMin];
     const [hMin, hMax] = hueMin <= hueMax ? [hueMin, hueMax] : [hueMax, hueMin];
     const [satMin, satMax] = saturationMin <= saturationMax ? [saturationMin, saturationMax] : [saturationMax, saturationMin];
+    const [lMin, lMax] = lightnessMin <= lightnessMax ? [lightnessMin, lightnessMax] : [lightnessMax, lightnessMin];
 
     // サイズを決定
     const size = random.nextFloat(sMin, sMax);
 
-    // 最大半径（ピクセル）
-    const maxRadius = (imageSize / 2) - margin;
-    const radius = size * maxRadius;
-
-    // 図形が画像内に収まるように中心位置の範囲を計算
-    // 中心から半径分の余裕を持たせる + マージン
-    const minCenter = (radius + margin) / imageSize;
-    const maxCenter = 1 - minCenter;
-
-    // 中心位置をランダムに決定（正規化座標）
+    // 中心位置を決定（正規化座標）
     let centerX: number;
     let centerY: number;
 
-    if (minCenter >= maxCenter) {
-        // 図形が大きすぎる場合は中央に配置
+    if (positionType === 'center') {
+        // 中心に固定
         centerX = 0.5;
         centerY = 0.5;
     } else {
-        centerX = random.nextFloat(minCenter, maxCenter);
-        centerY = random.nextFloat(minCenter, maxCenter);
+        // ランダム位置
+        // 最大半径（ピクセル）
+        const maxRadius = (imageSize / 2) - margin;
+        const radius = size * maxRadius;
+
+        // 図形が画像内に収まるように中心位置の範囲を計算
+        const minCenter = (radius + margin) / imageSize;
+        const maxCenter = 1 - minCenter;
+
+        if (minCenter >= maxCenter) {
+            // 図形が大きすぎる場合は中央に配置
+            centerX = 0.5;
+            centerY = 0.5;
+        } else {
+            centerX = random.nextFloat(minCenter, maxCenter);
+            centerY = random.nextFloat(minCenter, maxCenter);
+        }
     }
 
     return {
+        shapeType,
         size,
-        angle: random.nextFloat(aMin, aMax),
-        vertices: random.nextInt(Math.max(3, vMin), vMax),
+        angle: shapeType === 'circle' ? 0 : random.nextFloat(aMin, aMax),
+        vertices: shapeType === 'circle' ? 0 : random.nextInt(Math.max(3, vMin), vMax),
         centerX,
         centerY,
         hue: random.nextFloat(hMin, hMax),
         saturation: random.nextFloat(satMin, satMax),
+        lightness: random.nextFloat(lMin, lMax),
     };
 }
 
@@ -282,4 +313,34 @@ export function formatFilename(index: number, totalCount: number): string {
     // totalCountの桁数を取得（最低4桁）
     const digits = Math.max(4, totalCount.toString().length);
     return index.toString().padStart(digits, '0') + '.png';
+}
+
+/**
+ * 背景色タイプからHSL値を取得
+ * @param backgroundType 背景色タイプ
+ * @param rng 乱数生成器（randomの場合に使用）
+ * @returns [hue, saturation, lightness]
+ */
+export function getBackgroundHSL(
+    backgroundType: BackgroundType,
+    rng: SeededRandom | null
+): [number, number, number] {
+    const random = rng || { next: () => Math.random() };
+
+    switch (backgroundType) {
+        case 'white':
+            return [0, 0, 1.0];  // 白: 明度 1.0
+        case 'black':
+            return [0, 0, 0.0];  // 黒: 明度 0.0
+        case 'gray':
+            return [0, 0, 0.5];  // グレー: 明度 0.5
+        case 'random':
+            // ランダムに白・黒・グレーのいずれか
+            const choice = Math.floor(random.next() * 3);
+            if (choice === 0) return [0, 0, 0.0];      // 黒
+            if (choice === 1) return [0, 0, 1.0];      // 白
+            return [0, 0, 0.5];                        // グレー
+        default:
+            return [0, 0, 0.0];  // デフォルトは黒
+    }
 }
